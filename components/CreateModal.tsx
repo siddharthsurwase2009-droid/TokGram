@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Image as ImageIcon, Video as VideoIcon, Wand2, Upload } from 'lucide-react';
+import { X, Image as ImageIcon, Video as VideoIcon, Wand2, Upload, Sparkles } from 'lucide-react';
 import { generateImage, generateVideo, animateImage } from '../services/gemini';
 import { useFeed } from '../context/FeedContext';
 import { MediaType } from '../types';
@@ -103,7 +103,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose }) => {
             onClick={() => setActiveTab(CreateTab.GEN_VIDEO)}
             className={`flex-1 py-2 rounded-md text-xs font-bold flex items-center justify-center gap-1 transition ${activeTab === CreateTab.GEN_VIDEO ? 'bg-gray-800 text-white' : 'text-gray-500'}`}
           >
-            <VideoIcon className="w-3 h-3" /> Veo
+            <VideoIcon className="w-3 h-3" /> Reel
           </button>
           <button 
             onClick={() => setActiveTab(CreateTab.ANIMATE)}
