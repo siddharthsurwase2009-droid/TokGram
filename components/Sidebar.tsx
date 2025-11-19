@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, PlusSquare, MessageCircle, User, Film, Heart, Menu } from 'lucide-react';
+import { Home, Search, PlusSquare, MessageCircle, User, Film, Heart, Menu, Download } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -46,7 +46,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenCreate 
       </div>
 
       {/* Bottom */}
-      <div className="mt-auto pt-4 border-t border-gray-900">
+      <div className="mt-auto pt-4 border-t border-gray-900 space-y-1">
+         <button onClick={() => alert("Downloading TokGram AI Desktop App...")} className="flex items-center space-x-4 p-3 w-full rounded-xl text-gray-400 hover:bg-gray-900 hover:text-white transition-all group">
+            <Download className="w-7 h-7 group-hover:scale-110 transition-transform" />
+            <span className="text-base">Get App</span>
+         </button>
          <button className="flex items-center space-x-4 p-3 w-full rounded-xl text-gray-400 hover:bg-gray-900 hover:text-white transition-all group">
             <Menu className="w-7 h-7 group-hover:rotate-90 transition-transform" />
             <span className="text-base">More</span>

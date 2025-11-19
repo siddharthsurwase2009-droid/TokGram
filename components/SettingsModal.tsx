@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Shield, DollarSign, Accessibility, Copyright as CopyrightIcon, ChevronRight, Moon, Volume2, FileText, Wallet, AlertCircle, Landmark, CreditCard, History, ArrowUpRight, TrendingUp, Lock, Users, Eye, EyeOff, Key, Smartphone, MessageSquare, AtSign, ShieldAlert, Award, CheckCircle2, Circle, Zap } from 'lucide-react';
+import { X, Shield, DollarSign, Accessibility, Copyright as CopyrightIcon, ChevronRight, Moon, Volume2, FileText, Wallet, AlertCircle, Landmark, CreditCard, History, ArrowUpRight, TrendingUp, Lock, Users, Eye, EyeOff, Key, Smartphone, MessageSquare, AtSign, ShieldAlert, Award, CheckCircle2, Circle, Zap, Download } from 'lucide-react';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -438,6 +438,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
       default: // General Menu
         return (
           <div className="space-y-1 animate-in slide-in-from-left">
+             <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 p-4 rounded-xl border border-indigo-500/30 mb-4 flex items-center justify-between cursor-pointer hover:bg-indigo-900/30 transition" onClick={() => alert("Installing App...")}>
+                <div className="flex items-center gap-3">
+                    <div className="bg-indigo-500 p-2 rounded-lg text-white">
+                        <Download className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-bold text-white">Install App</h4>
+                        <p className="text-xs text-indigo-200">Get the full experience</p>
+                    </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-indigo-300" />
+             </div>
+
             <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1">Account</h3>
             <MenuItem icon={DollarSign} label="Monetization & Earnings" onClick={() => setActiveTab('monetization')} value={`$${balance.toLocaleString()}`} />
             <MenuItem icon={Shield} label="Privacy & Safety" onClick={() => setActiveTab('privacy')} />
