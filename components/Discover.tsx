@@ -10,9 +10,9 @@ const Discover: React.FC = () => {
   const gridItems = [...posts, ...posts, ...posts].slice(0, 12); 
 
   return (
-    <div className="w-full h-full bg-black overflow-y-auto pb-20 pt-12">
+    <div className="w-full h-full bg-white overflow-y-auto pb-20 pt-12">
        {/* Sticky Search Header */}
-       <div className="fixed top-0 left-0 right-0 z-30 p-4 bg-black/90 backdrop-blur-md border-b border-gray-800/50">
+       <div className="fixed top-0 left-0 right-0 z-30 p-4 bg-white/90 backdrop-blur-md border-b border-gray-200 md:left-[240px]">
           <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input 
@@ -20,22 +20,22 @@ const Discover: React.FC = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search ID, users, or tags..."
-                  className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-neon focus:ring-1 focus:ring-neon transition-all text-white placeholder-gray-500"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all text-black placeholder-gray-500"
               />
           </div>
           
           {/* Quick Filters */}
           <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
-              <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-md text-xs font-bold text-white whitespace-nowrap hover:bg-gray-700">
+              <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-md text-xs font-bold text-black whitespace-nowrap hover:bg-gray-200 border border-gray-200">
                  <TrendingUp className="w-3 h-3" /> Trending
               </button>
-              <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-md text-xs font-bold text-white whitespace-nowrap hover:bg-gray-700">
+              <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-md text-xs font-bold text-black whitespace-nowrap hover:bg-gray-200 border border-gray-200">
                  <User className="w-3 h-3" /> Accounts
               </button>
-              <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 rounded-md text-xs font-bold text-white whitespace-nowrap hover:bg-gray-700">
+              <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-md text-xs font-bold text-black whitespace-nowrap hover:bg-gray-200 border border-gray-200">
                  <Hash className="w-3 h-3" /> Tags
               </button>
-              <button className="px-3 py-1.5 bg-gray-800 rounded-md text-xs font-bold text-white whitespace-nowrap hover:bg-gray-700">
+              <button className="px-3 py-1.5 bg-gray-100 rounded-md text-xs font-bold text-black whitespace-nowrap hover:bg-gray-200 border border-gray-200">
                  Audio
               </button>
           </div>
@@ -53,7 +53,7 @@ const Discover: React.FC = () => {
                 {gridItems.map((post, index) => (
                     <div 
                         key={`${post.id}-${index}`} 
-                        className={`relative bg-gray-900 overflow-hidden aspect-square group cursor-pointer ${index === 2 ? 'row-span-2 col-span-2 aspect-auto' : ''}`}
+                        className={`relative bg-gray-100 overflow-hidden aspect-square group cursor-pointer ${index === 2 ? 'row-span-2 col-span-2 aspect-auto' : ''}`}
                     >
                         {post.type === 'image' ? (
                             <img src={post.url} alt="discover" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />

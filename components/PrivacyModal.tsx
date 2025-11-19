@@ -7,27 +7,27 @@ interface PrivacyModalProps {
 
 const PrivacyModal: React.FC<PrivacyModalProps> = ({ onClose }) => {
   const SettingItem = ({ icon: Icon, title, value }: any) => (
-    <div className="flex items-center justify-between py-4 border-b border-gray-800">
+    <div className="flex items-center justify-between py-4 border-b border-gray-200">
       <div className="flex items-center gap-3">
-        <Icon className="w-5 h-5 text-gray-400" />
-        <span className="text-sm font-medium text-gray-200">{title}</span>
+        <Icon className="w-5 h-5 text-gray-500" />
+        <span className="text-sm font-medium text-gray-800">{title}</span>
       </div>
-      <span className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer hover:text-white">
+      <span className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer hover:text-black">
         {value}
       </span>
     </div>
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-card w-full sm:w-[400px] h-[80vh] sm:h-[600px] rounded-t-2xl sm:rounded-2xl flex flex-col border border-gray-800 relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-white w-full sm:w-[400px] h-[80vh] sm:h-[600px] rounded-t-2xl sm:rounded-2xl flex flex-col border border-gray-200 relative overflow-hidden shadow-xl">
         
         {/* Header */}
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-black/50">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <Shield className="w-5 h-5 text-neon" /> Privacy & Settings
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+          <h2 className="text-lg font-bold flex items-center gap-2 text-black">
+            <Shield className="w-5 h-5 text-blue-500" /> Privacy & Settings
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-full transition">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
@@ -45,12 +45,12 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ onClose }) => {
 
             <section>
               <h3 className="text-xs font-bold text-gray-500 uppercase mb-2">Data & Permissions</h3>
-              <div className="bg-gray-900/50 rounded-lg p-4 text-xs text-gray-400 leading-relaxed border border-gray-800">
+              <div className="bg-gray-50 rounded-lg p-4 text-xs text-gray-600 leading-relaxed border border-gray-200">
                 <p className="mb-2">
-                  <strong className="text-white">Data Usage:</strong> We use AI models (Gemini, Veo) to process your content. Your prompts are sent to Google's API for generation.
+                  <strong className="text-black">Data Usage:</strong> We use AI models (Gemini, Veo) to process your content. Your prompts are sent to Google's API for generation.
                 </p>
                 <p>
-                  <strong className="text-white">Camera & Mic:</strong> Used only when creating content or using Live features. You can revoke these permissions in your browser settings.
+                  <strong className="text-black">Camera & Mic:</strong> Used only when creating content or using Live features. You can revoke these permissions in your browser settings.
                 </p>
               </div>
             </section>
@@ -58,15 +58,15 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ onClose }) => {
             <section>
               <h3 className="text-xs font-bold text-gray-500 uppercase mb-2">About</h3>
               <div className="flex justify-between py-2">
-                <span className="text-sm text-gray-300">Terms of Service</span>
+                <span className="text-sm text-gray-700">Terms of Service</span>
                 <span className="text-xs text-gray-500">v1.0.0</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="text-sm text-gray-300">Community Guidelines</span>
+                <span className="text-sm text-gray-700">Community Guidelines</span>
               </div>
             </section>
 
-             <button className="w-full mt-6 py-3 rounded-lg border border-red-900/50 text-red-500 text-sm font-bold hover:bg-red-900/10 transition">
+             <button className="w-full mt-6 py-3 rounded-lg border border-red-200 text-red-500 text-sm font-bold hover:bg-red-50 transition">
                 Log Out
             </button>
 

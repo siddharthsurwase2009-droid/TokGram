@@ -19,7 +19,7 @@ const Feed: React.FC<FeedProps> = ({ viewMode, searchQuery }) => {
 
   return (
     <div 
-      className={`w-full h-full bg-black ${
+      className={`w-full h-full bg-white ${
         viewMode === 'reels' 
           ? 'overflow-y-scroll snap-y snap-mandatory no-scrollbar pb-[70px]'
           : 'overflow-y-auto pb-24 pt-[72px]'
