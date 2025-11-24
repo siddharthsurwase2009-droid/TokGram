@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, PlusSquare, MessageCircle, User, Film, Heart, Menu, Download } from 'lucide-react';
+import { Home, Search, PlusSquare, User, Film, Heart, Menu, Download } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -34,7 +34,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onOpenCreate 
         <NavItem id="home" icon={Home} label="Home" />
         <NavItem id="discover" icon={Search} label="Search" />
         <NavItem id="reels" icon={Film} label="Reels" />
-        <NavItem id="messages" icon={MessageCircle} label="Messages" />
         <NavItem id="notifications" icon={Heart} label="Notifications" />
         
         <div onClick={onOpenCreate} className="flex items-center space-x-4 p-3 w-full rounded-xl transition-all duration-200 text-gray-600 hover:bg-gray-100 hover:text-black cursor-pointer group">

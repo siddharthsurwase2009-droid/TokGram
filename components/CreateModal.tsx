@@ -1,190 +1,290 @@
-import React, { useState, useRef } from 'react';
-import { X, Image as ImageIcon, Video as VideoIcon, Wand2, Upload, Sparkles } from 'lucide-react';
-import { generateImage, generateVideo, animateImage } from '../services/gemini';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Upload, CloudUpload, Camera, Radio, Image as ImageIcon, Film } from 'lucide-react';
 import { useFeed } from '../context/FeedContext';
 import { MediaType } from '../types';
-import { fileToBase64 } from '../utils/helpers';
 
 interface CreateModalProps {
   onClose: () => void;
 }
 
-enum CreateTab {
-  GEN_IMAGE = 'GEN_IMAGE',
-  GEN_VIDEO = 'GEN_VIDEO',
-  ANIMATE = 'ANIMATE',
-}
+type CreateMode = 'POST' | 'REEL' | 'STORY' | 'LIVE';
 
 const CreateModal: React.FC<CreateModalProps> = ({ onClose }) => {
-  const { addPost } = useFeed();
-  const [activeTab, setActiveTab] = useState<CreateTab>(CreateTab.GEN_IMAGE);
-  const [prompt, setPrompt] = useState('');
-  const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const { addPost, addStory } = useFeed();
+  const [mode, setMode] = useState<CreateMode>('POST');
+  
+  // Upload State
+  const [caption, setCaption] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Live Camera State
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isLive, setIsLive] = useState(false);
+
+  // Cleanup effect for preview URLs and Camera stream
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [previewUrl, stream]);
+
+  // Handle Camera for Live Mode
+  useEffect(() => {
+    const startCamera = async () => {
+      if (mode === 'LIVE') {
+        try {
+          const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          setStream(mediaStream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+          }
+        } catch (err) {
+          console.error("Error accessing camera:", err);
+          alert("Could not access camera. Please check permissions.");
+        }
+      } else {
+        // Stop camera if switching away from LIVE
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          setStream(null);
+        }
+      }
+    };
+
+    startCamera();
+  }, [mode]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      if (file.size > 500 * 1024 * 1024) {
+          alert("File too large. Max 500MB.");
+          return;
+      }
+      
+      // Validate file type based on mode
+      if (mode === 'REEL' && !file.type.startsWith('video/')) {
+          alert("Reels must be video files.");
+          return;
+      }
+
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
     }
   };
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      let mediaUrl = '';
-      let mediaType: MediaType = MediaType.IMAGE;
-
-      if (activeTab === CreateTab.GEN_IMAGE) {
-        // Imagen 4
-        mediaUrl = await generateImage(prompt, aspectRatio);
-        mediaType = MediaType.IMAGE;
-      } else if (activeTab === CreateTab.GEN_VIDEO) {
-        // Veo 3 Text-to-Video
-        mediaUrl = await generateVideo(prompt, aspectRatio);
-        mediaType = MediaType.VIDEO;
-      } else if (activeTab === CreateTab.ANIMATE) {
-        // Veo 3 Image-to-Video
-        if (!selectedFile) {
-            alert("Please upload an image to animate.");
-            setIsGenerating(false);
-            return;
+  const handlePost = async () => {
+    if (mode === 'LIVE') {
+        setIsLive(!isLive);
+        if (!isLive) {
+            alert("You are now LIVE! (Simulated)");
+        } else {
+            alert("Ended Live Video.");
+            onClose();
         }
-        const base64 = await fileToBase64(selectedFile);
-        mediaUrl = await animateImage(base64, selectedFile.type, prompt, aspectRatio);
-        mediaType = MediaType.VIDEO;
-      }
+        return;
+    }
 
-      addPost({
-        id: Date.now().toString(),
-        type: mediaType === MediaType.IMAGE ? 'image' : 'video',
-        url: mediaUrl,
-        author: 'you',
-        likes: 0,
-        caption: prompt || (activeTab === CreateTab.ANIMATE ? 'Animated masterpiece' : 'Generated content'),
-        aspectRatio: aspectRatio,
-      });
+    if (!previewUrl || !selectedFile) {
+        alert("Please select a file first");
+        return;
+    }
+
+    setIsPosting(true);
+    try {
+      const isVideo = selectedFile.type.startsWith('video');
+      const mediaType = isVideo ? MediaType.VIDEO : MediaType.IMAGE;
+      const commonId = Date.now().toString();
+
+      if (mode === 'STORY') {
+        addStory({
+            id: commonId,
+            username: 'you',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+            mediaUrl: previewUrl,
+            type: isVideo ? 'video' : 'image',
+            isUser: true
+        });
+        alert("Added to Story!");
+      } else {
+        // Post or Reel
+        addPost({
+            id: commonId,
+            type: isVideo ? 'video' : 'image',
+            url: previewUrl,
+            author: 'you',
+            likes: 0,
+            caption: caption || (mode === 'REEL' ? '#reel' : 'Uploaded from gallery'),
+            aspectRatio: mode === 'REEL' ? '9:16' : '1:1',
+        });
+      }
       
       onClose();
     } catch (error) {
-      console.error("Generation failed:", error);
-      alert("Generation failed. Ensure API keys are set (User Key for Veo) or try a simpler prompt.");
+      console.error("Upload failed:", error);
+      alert("Upload failed.");
     } finally {
-      setIsGenerating(false);
+      setIsPosting(false);
     }
   };
 
+  const getAcceptType = () => {
+      if (mode === 'REEL') return "video/mp4,video/quicktime";
+      return "image/*,video/mp4,video/quicktime";
+  };
+
+  const getTitle = () => {
+      switch(mode) {
+          case 'POST': return 'New Post';
+          case 'REEL': return 'New Reel';
+          case 'STORY': return 'Add to Story';
+          case 'LIVE': return 'Live';
+          default: return 'Create';
+      }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white w-full sm:w-96 max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-5 flex flex-col border border-gray-200 relative shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className={`bg-white w-full sm:w-[500px] ${mode === 'LIVE' ? 'h-[90vh]' : 'max-h-[90vh]'} overflow-hidden rounded-t-2xl sm:rounded-2xl flex flex-col border border-gray-200 relative shadow-2xl transition-all duration-300`}>
         
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-black">
-          <X className="w-6 h-6" />
-        </button>
-
-        <h2 className="text-xl font-bold mb-6 bg-gradient-to-r from-accent to-purple-600 bg-clip-text text-transparent">
-          Create Magic
-        </h2>
-
-        {/* Tabs */}
-        <div className="flex space-x-2 mb-6 bg-gray-100 p-1 rounded-lg">
-          <button 
-            onClick={() => setActiveTab(CreateTab.GEN_IMAGE)}
-            className={`flex-1 py-2 rounded-md text-xs font-bold flex items-center justify-center gap-1 transition ${activeTab === CreateTab.GEN_IMAGE ? 'bg-white text-black shadow-sm' : 'text-gray-500'}`}
-          >
-            <ImageIcon className="w-3 h-3" /> Imagen
-          </button>
-          <button 
-            onClick={() => setActiveTab(CreateTab.GEN_VIDEO)}
-            className={`flex-1 py-2 rounded-md text-xs font-bold flex items-center justify-center gap-1 transition ${activeTab === CreateTab.GEN_VIDEO ? 'bg-white text-black shadow-sm' : 'text-gray-500'}`}
-          >
-            <VideoIcon className="w-3 h-3" /> Reel
-          </button>
-          <button 
-            onClick={() => setActiveTab(CreateTab.ANIMATE)}
-            className={`flex-1 py-2 rounded-md text-xs font-bold flex items-center justify-center gap-1 transition ${activeTab === CreateTab.ANIMATE ? 'bg-white text-black shadow-sm' : 'text-gray-500'}`}
-          >
-            <Wand2 className="w-3 h-3" /> Animate
-          </button>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 z-10 bg-white">
+            <h2 className="text-lg font-bold text-black">{getTitle()}</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-black">
+                <X className="w-6 h-6" />
+            </button>
         </div>
 
-        {/* Config */}
-        <div className="space-y-4 flex-1">
-          
-          {/* File Upload for Animate */}
-          {activeTab === CreateTab.ANIMATE && (
-            <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:border-accent transition bg-gray-50"
-            >
-                {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="h-32 object-cover rounded-md" />
-                ) : (
-                    <>
-                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                        <span className="text-xs text-gray-500">Upload photo to animate</span>
-                    </>
-                )}
-                <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
-            </div>
-          )}
-
-          {/* Prompt */}
-          <div>
-            <label className="text-xs text-gray-500 uppercase font-bold mb-1 block">Prompt</label>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={activeTab === CreateTab.ANIMATE ? "Describe how it should move..." : "Describe what you want to see..."}
-              className="w-full bg-gray-50 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 h-24 resize-none border border-gray-200 text-black"
-            />
-          </div>
-
-          {/* Aspect Ratio */}
-          <div>
-            <label className="text-xs text-gray-500 uppercase font-bold mb-1 block">Aspect Ratio</label>
-            <div className="flex space-x-2">
-              {['1:1', '16:9', '9:16', '3:4', '4:3'].map(ratio => (
-                <button 
-                    key={ratio}
-                    onClick={() => setAspectRatio(ratio)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold border ${aspectRatio === ratio ? 'border-purple-500 text-purple-600 bg-purple-50' : 'border-gray-300 text-gray-500'}`}
-                >
-                    {ratio}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button 
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            className="w-full bg-gradient-to-r from-accent to-orange-600 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-orange-500/20 transition disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isGenerating ? (
-                <>
-                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                 Generating...
-                </>
+        {/* Content Area */}
+        <div className="flex-1 relative bg-gray-50 flex flex-col">
+            {mode === 'LIVE' ? (
+                <div className="absolute inset-0 bg-black flex flex-col items-center justify-center overflow-hidden">
+                    <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        muted 
+                        playsInline 
+                        className="w-full h-full object-cover opacity-80"
+                    />
+                    <div className="absolute top-4 left-4 bg-red-600 px-2 py-1 rounded text-white text-xs font-bold animate-pulse">
+                        LIVE
+                    </div>
+                    
+                    <div className="absolute bottom-20 flex flex-col items-center w-full px-8">
+                        <button 
+                            onClick={handlePost}
+                            className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all ${isLive ? 'border-red-500 bg-white' : 'border-white bg-red-600 hover:scale-110'}`}
+                        >
+                            <div className={`transition-all ${isLive ? 'w-8 h-8 bg-red-600 rounded-sm' : 'w-0 h-0'}`}></div>
+                            {!isLive && <span className="font-bold text-white text-[10px] uppercase tracking-wider">Go Live</span>}
+                        </button>
+                        <p className="text-white mt-4 text-sm font-medium shadow-black drop-shadow-md">
+                            {isLive ? 'Broadcasting...' : 'Tap to start live video'}
+                        </p>
+                    </div>
+                </div>
             ) : (
-                <>
-                 <Sparkles className="w-4 h-4" /> Generate
-                </>
+                <div className="p-6 flex flex-col h-full overflow-y-auto">
+                     {/* File Upload Area */}
+                    <div 
+                        className="border-2 border-dashed border-gray-300 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition min-h-[300px] relative bg-white group"
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        {previewUrl ? (
+                            selectedFile?.type.startsWith('video') ? (
+                                <video src={previewUrl} className={`w-full h-full object-contain rounded-lg shadow-sm ${mode === 'REEL' ? 'max-h-[400px]' : 'max-h-[300px]'}`} controls />
+                            ) : (
+                                <img src={previewUrl} alt="preview" className="w-full h-full object-contain rounded-lg shadow-sm max-h-[400px]" />
+                            )
+                        ) : (
+                            <div className="flex flex-col items-center text-center p-8">
+                                <div className="bg-gray-100 p-5 rounded-full mb-4 group-hover:scale-110 transition duration-300">
+                                    {mode === 'REEL' ? <Film className="w-8 h-8 text-gray-400" /> : <CloudUpload className="w-8 h-8 text-gray-400" />}
+                                </div>
+                                <p className="text-lg font-bold text-gray-700">Select from device</p>
+                                <p className="text-xs text-gray-400 mt-2">
+                                    {mode === 'REEL' ? 'MP4 or MOV up to 500MB' : 'Photos and Videos up to 500MB'}
+                                </p>
+                            </div>
+                        )}
+                        <input 
+                            type="file" 
+                            ref={fileInputRef}
+                            className="hidden" 
+                            onChange={handleFileChange} 
+                            accept={getAcceptType()}
+                        />
+                         {previewUrl && (
+                             <button 
+                                onClick={(e) => { e.stopPropagation(); setPreviewUrl(null); setSelectedFile(null); }}
+                                className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white transition"
+                             >
+                                 <X className="w-4 h-4" />
+                             </button>
+                         )}
+                    </div>
+
+                    {/* Caption Input (Only if file selected) */}
+                    {previewUrl && (
+                        <div className="mt-4 animate-in slide-in-from-bottom-2">
+                            <textarea
+                                value={caption}
+                                onChange={(e) => setCaption(e.target.value)}
+                                placeholder={mode === 'STORY' ? "Add text..." : "Write a caption..."}
+                                className="w-full bg-white rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-black border border-gray-200 text-black shadow-sm resize-none h-24"
+                            />
+                            
+                            <button 
+                                onClick={handlePost}
+                                disabled={isPosting}
+                                className="w-full mt-4 bg-black text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-gray-800 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {isPosting ? 'Uploading...' : (mode === 'STORY' ? 'Add to Story' : 'Share')}
+                            </button>
+                        </div>
+                    )}
+                </div>
             )}
-          </button>
-          
-          {/* Veo specific note */}
-          {(activeTab === CreateTab.GEN_VIDEO || activeTab === CreateTab.ANIMATE) && (
-             <p className="text-[10px] text-center text-gray-500">
-                 Video generation uses Veo and requires your API Key selection via the Google AI Studio popup.
-             </p>
-          )}
         </div>
+
+        {/* Bottom Mode Switcher */}
+        <div className="bg-white p-2 border-t border-gray-100">
+            <div className="flex justify-between items-center bg-gray-100 rounded-xl p-1 relative">
+                {/* Active Indicator Background */}
+                <div 
+                    className="absolute top-1 bottom-1 bg-white rounded-lg shadow-sm transition-all duration-300 ease-out"
+                    style={{ 
+                        width: '24%', 
+                        left: mode === 'POST' ? '0.5%' : mode === 'REEL' ? '25.5%' : mode === 'STORY' ? '50.5%' : '75.5%' 
+                    }}
+                ></div>
+
+                {(['POST', 'REEL', 'STORY', 'LIVE'] as CreateMode[]).map((m) => (
+                    <button
+                        key={m}
+                        onClick={() => {
+                            setMode(m);
+                            // Reset state when switching modes
+                            setPreviewUrl(null);
+                            setSelectedFile(null);
+                            setCaption('');
+                        }}
+                        className={`relative z-10 flex-1 py-2 text-xs font-bold text-center transition-colors duration-200 ${mode === m ? 'text-black' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        {m}
+                    </button>
+                ))}
+            </div>
+        </div>
+
       </div>
     </div>
   );

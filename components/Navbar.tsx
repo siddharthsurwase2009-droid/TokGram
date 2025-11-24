@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Film, PlusSquare, MessageCircle, User } from 'lucide-react';
+import { Home, Film, PlusSquare, User, Heart } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -19,7 +19,7 @@ const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, onOpenCreate })
   );
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-40 px-6 py-2 pb-4 flex justify-between items-center md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-40 px-4 py-2 pb-4 flex justify-between items-center md:hidden">
       <NavItem id="home" icon={Home} label="Home" />
       <NavItem id="reels" icon={Film} label="Reels" />
 
@@ -30,7 +30,7 @@ const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, onOpenCreate })
         <PlusSquare className="w-6 h-6 text-white group-hover:scale-110 transition" />
       </button>
 
-      <NavItem id="messages" icon={MessageCircle} label="Inbox" />
+      <NavItem id="notifications" icon={Heart} label="Activity" />
       <NavItem id="profile" icon={User} label="Profile" />
     </div>
   );

@@ -19,3 +19,13 @@ export interface Comment {
   user: string;
   text: string;
 }
+
+export interface Story {
+  id: string;
+  username: string;
+  avatar: string;
+  mediaUrl?: string; // Optional for placeholder stories
+  type: 'image' | 'video';
+  isUser?: boolean;
+  viewed?: boolean;
+}

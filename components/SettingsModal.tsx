@@ -1,14 +1,24 @@
 import React, { useState } from 'react';
-import { X, Shield, DollarSign, Accessibility, Copyright as CopyrightIcon, ChevronRight, Moon, Volume2, FileText, Wallet, AlertCircle, Landmark, CreditCard, History, ArrowUpRight, TrendingUp, Lock, Users, Eye, EyeOff, Key, Smartphone, MessageSquare, AtSign, ShieldAlert, Award, CheckCircle2, Circle, Zap, Download } from 'lucide-react';
+import { X, Shield, DollarSign, Accessibility, Copyright as CopyrightIcon, ChevronRight, Moon, Volume2, FileText, Wallet, AlertCircle, Landmark, CreditCard, History, ArrowUpRight, TrendingUp, Lock, Users, Eye, EyeOff, Key, Smartphone, MessageSquare, AtSign, ShieldAlert, Award, CheckCircle2, Circle, Zap, Download, Briefcase, User, Check } from 'lucide-react';
 
 interface SettingsModalProps {
   onClose: () => void;
+  settings: {
+      isPrivate: boolean;
+      accountType: 'Personal' | 'Professional';
+  };
+  onUpdateSettings: (key: string, value: any) => void;
 }
 
-type SettingsTab = 'general' | 'monetization' | 'accessibility' | 'privacy' | 'copyright';
+type SettingsTab = 'general' | 'monetization' | 'accessibility' | 'privacy' | 'copyright' | 'account_type';
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, settings, onUpdateSettings }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  
+  // Local state for buffering changes
+  const [localSettings, setLocalSettings] = useState(settings);
+  const [hasChanges, setHasChanges] = useState(false);
+  const { accountType, isPrivate } = localSettings;
   
   // Monetization State
   const [balance, setBalance] = useState(1240.50);
@@ -30,10 +40,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   });
 
   // Privacy & Safety State
-  const [isPrivate, setIsPrivate] = useState(false);
   const [isActivityStatusOn, setIsActivityStatusOn] = useState(true);
   const [twoFactor, setTwoFactor] = useState(false);
   const [hiddenWords, setHiddenWords] = useState(true);
+
+  const updateLocalSetting = (key: string, value: any) => {
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
+    setHasChanges(true);
+  };
+
+  const handleSave = () => {
+    Object.entries(localSettings).forEach(([key, value]) => {
+        onUpdateSettings(key, value);
+    });
+    setHasChanges(false);
+    onClose();
+  };
 
   const handleWithdraw = () => {
     const amount = parseFloat(withdrawAmount);
@@ -402,7 +424,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                 label="Private Account" 
                 description="Only people you approve can see your photos and videos." 
                 isActive={isPrivate} 
-                onToggle={() => setIsPrivate(!isPrivate)} 
+                onToggle={() => {
+                    if (accountType === 'Professional' && !isPrivate) {
+                        if (window.confirm("Professional accounts are public by default. Switch to Personal account to make it private?")) {
+                            updateLocalSetting('accountType', 'Personal');
+                            updateLocalSetting('isPrivate', true);
+                        }
+                    } else {
+                        updateLocalSetting('isPrivate', !isPrivate);
+                    }
+                }} 
               />
               <ToggleItem 
                 label="Activity Status" 
@@ -435,6 +466,75 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
            </div>
         );
 
+      case 'account_type':
+        return (
+            <div className="animate-in slide-in-from-right pb-8">
+                <div className="text-center mb-6">
+                    <h3 className="text-xl font-bold text-black">Choose Account Type</h3>
+                    <p className="text-xs text-gray-500 mt-1">Select the option that best fits your needs.</p>
+                </div>
+
+                <div className="space-y-4">
+                    {/* Professional Card */}
+                    <div 
+                        onClick={() => {
+                            if (isPrivate) {
+                                if (window.confirm("Switching to a Professional account will make your profile public. Continue?")) {
+                                    updateLocalSetting('isPrivate', false);
+                                    updateLocalSetting('accountType', 'Professional');
+                                }
+                            } else {
+                                updateLocalSetting('accountType', 'Professional');
+                            }
+                        }}
+                        className={`p-5 rounded-2xl border-2 transition-all cursor-pointer relative ${accountType === 'Professional' ? 'border-black bg-gray-50 shadow-md' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+                    >
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                                <Briefcase className="w-6 h-6" />
+                            </div>
+                            {accountType === 'Professional' && <CheckCircle2 className="w-6 h-6 text-black fill-white" />}
+                        </div>
+                        <h4 className="font-bold text-lg text-black mb-1">Professional</h4>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                            Best for creators, businesses, and publishers. 
+                            <ul className="list-disc ml-4 mt-2 space-y-1 text-gray-500">
+                                <li>Get insights on content performance</li>
+                                <li>Access monetization tools</li>
+                                <li>Add contact buttons to your profile</li>
+                            </ul>
+                        </p>
+                    </div>
+
+                    {/* Personal Card */}
+                    <div 
+                        onClick={() => updateLocalSetting('accountType', 'Personal')}
+                        className={`p-5 rounded-2xl border-2 transition-all cursor-pointer relative ${accountType === 'Personal' ? 'border-black bg-gray-50 shadow-md' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+                    >
+                         <div className="flex items-center justify-between mb-3">
+                            <div className="p-2 bg-pink-100 rounded-lg text-pink-600">
+                                <User className="w-6 h-6" />
+                            </div>
+                            {accountType === 'Personal' && <CheckCircle2 className="w-6 h-6 text-black fill-white" />}
+                        </div>
+                        <h4 className="font-bold text-lg text-black mb-1">Personal</h4>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                            Best for individuals.
+                             <ul className="list-disc ml-4 mt-2 space-y-1 text-gray-500">
+                                <li>Keep your account private</li>
+                                <li>Connect with friends and family</li>
+                                <li>Simpler interface without analytics</li>
+                            </ul>
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs text-center text-gray-500">
+                    Switching to a Personal account will turn off in-app insights for all content.
+                </div>
+            </div>
+        );
+
       default: // General Menu
         return (
           <div className="space-y-1 animate-in slide-in-from-left">
@@ -452,6 +552,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
              </div>
 
             <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 px-1">Account</h3>
+            <MenuItem icon={Briefcase} label="Account Type" value={accountType} onClick={() => setActiveTab('account_type')} />
             <MenuItem icon={DollarSign} label="Monetization & Earnings" onClick={() => setActiveTab('monetization')} value={`$${balance.toLocaleString()}`} />
             <MenuItem icon={Shield} label="Privacy & Safety" onClick={() => setActiveTab('privacy')} />
             <MenuItem icon={Wallet} label="Orders & Payments" onClick={() => {}} />
@@ -482,12 +583,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                </button>
              )}
              <h2 className="text-lg font-bold capitalize text-black">
-               {activeTab === 'general' ? 'Settings' : activeTab}
+               {activeTab === 'general' ? 'Settings' : activeTab.replace('_', ' ')}
              </h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
+          <div className="flex items-center gap-2">
+            {hasChanges && (
+                <button 
+                    onClick={handleSave} 
+                    className="px-4 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition animate-in fade-in shadow-md"
+                >
+                    Save
+                </button>
+            )}
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">
+                <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

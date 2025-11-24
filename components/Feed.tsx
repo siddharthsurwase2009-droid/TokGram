@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useFeed } from '../context/FeedContext';
 import PostItem from './PostItem';
 import Stories from './Stories';
@@ -11,14 +11,39 @@ interface FeedProps {
 
 const Feed: React.FC<FeedProps> = ({ viewMode, searchQuery }) => {
   const { posts } = useFeed();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const filteredPosts = posts.filter(post => {
     const query = searchQuery.toLowerCase();
     return post.caption.toLowerCase().includes(query) || post.author.toLowerCase().includes(query);
   });
 
+  // Handle Keyboard Navigation for Reels
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (viewMode === 'reels' && containerRef.current) {
+        // Prevent default scrolling for cleaner custom handling in reels mode
+        // Only trigger if not in an input field
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          containerRef.current.scrollBy({ top: containerRef.current.clientHeight, behavior: 'smooth' });
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          containerRef.current.scrollBy({ top: -containerRef.current.clientHeight, behavior: 'smooth' });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewMode]);
+
   return (
     <div 
+      ref={containerRef}
       className={`w-full h-full bg-white ${
         viewMode === 'reels' 
           ? 'overflow-y-scroll snap-y snap-mandatory no-scrollbar pb-[70px]'

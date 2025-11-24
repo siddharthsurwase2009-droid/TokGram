@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Post } from '../types';
-import { Heart, MessageCircle, Share2, Sparkles, Film, Music2, MoreHorizontal, X, Gift, Flag, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { analyzeVideo, editImage } from '../services/gemini';
+import { Heart, MessageCircle, Share2, MoreHorizontal, X, Flag, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { ViewMode } from '../App';
 
 interface PostItemProps {
@@ -13,24 +12,13 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likes, setLikes] = useState(post.likes);
   const [showHeartOverlay, setShowHeartOverlay] = useState(false);
-  const [showAnalyzeModal, setShowAnalyzeModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showGiftAnimation, setShowGiftAnimation] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   // Safety / Menu State
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState<string | null>(null);
   const [isReportSubmitted, setIsReportSubmitted] = useState(false);
-
-  // Analysis/Edit State
-  const [analysisPrompt, setAnalysisPrompt] = useState('');
-  const [analysisResult, setAnalysisResult] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  // Editing State
-  const [editPrompt, setEditPrompt] = useState('');
-  const [editedImageUrl, setEditedImageUrl] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
@@ -45,6 +33,20 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
         videoRef.current.pause();
     }
   }, [viewMode]);
+
+  // Track video progress for progress bar
+  useEffect(() => {
+    const video = videoRef.current;
+    if (viewMode === 'reels' && post.type === 'video' && video) {
+      const handleTimeUpdate = () => {
+        if (video.duration) {
+          setProgress((video.currentTime / video.duration) * 100);
+        }
+      };
+      video.addEventListener('timeupdate', handleTimeUpdate);
+      return () => video.removeEventListener('timeupdate', handleTimeUpdate);
+    }
+  }, [viewMode, post.type]);
 
   // Click outside options menu to close
   useEffect(() => {
@@ -76,69 +78,6 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
     setTimeout(() => setShowHeartOverlay(false), 800);
   };
 
-  const handleGift = () => {
-    setShowGiftAnimation(true);
-    setTimeout(() => setShowGiftAnimation(false), 2000);
-  };
-
-  const handleAnalyze = async () => {
-    if (!analysisPrompt.trim()) return;
-    setIsProcessing(true);
-    try {
-      let result = "";
-      // Handle both blob URLs (generated) and external URLs
-      let fetchUrl = post.url;
-      
-      const response = await fetch(fetchUrl);
-      const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-        reader.readAsDataURL(blob);
-      });
-      
-      if (post.type === 'video') {
-        result = await analyzeVideo(base64, 'video/mp4', analysisPrompt);
-      } else {
-         result = "Video analysis is best suited for video content.";
-      }
-      
-      setAnalysisResult(result);
-    } catch (error: any) {
-      setAnalysisResult("Error analyzing content. If this is an external video, CORS might be blocking access. " + error.message);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleEdit = async () => {
-    if (!editPrompt.trim()) return;
-    setIsProcessing(true);
-    try {
-        let base64 = '';
-        let mimeType = 'image/jpeg';
-        let fetchUrl = editedImageUrl || post.url;
-
-        const response = await fetch(fetchUrl);
-        const blob = await response.blob();
-        mimeType = blob.type;
-        base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-            reader.readAsDataURL(blob);
-        });
-
-        const resultUrl = await editImage(base64, mimeType, editPrompt);
-        setEditedImageUrl(resultUrl);
-        setEditPrompt('');
-    } catch (error) {
-        console.error(error);
-        alert("Failed to edit image. Ensure it is a generated image or allows CORS.");
-    } finally {
-        setIsProcessing(false);
-    }
-  };
-
   const submitReport = () => {
      setIsReportSubmitted(true);
      setTimeout(() => {
@@ -156,7 +95,7 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
       : "w-full h-auto object-contain max-h-[500px] bg-gray-100";
 
     const content = post.type === 'image' ? (
-      <img src={editedImageUrl || post.url} alt={post.caption} className={commonClasses} />
+      <img src={post.url} alt={post.caption} className={commonClasses} />
     ) : (
       <video 
         ref={videoRef}
@@ -175,14 +114,6 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
             {/* Heart Animation Overlay */}
             <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 ${showHeartOverlay ? 'opacity-100 scale-110' : 'opacity-0 scale-50'}`}>
                 <Heart className="w-24 h-24 text-white fill-white drop-shadow-lg animate-pulse" />
-            </div>
-            
-            {/* Gift Animation Overlay */}
-            <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-500 ${showGiftAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-                <div className="bg-white/80 backdrop-blur-md p-4 rounded-full flex flex-col items-center animate-bounce shadow-lg border border-gray-200">
-                    <Gift className="w-16 h-16 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]" />
-                    <span className="text-yellow-600 font-bold text-lg">+100 Coins</span>
-                </div>
             </div>
         </div>
     );
@@ -233,7 +164,6 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
 
             <ActionButton icon={Heart} label={likes} onClick={handleLike} active={isLiked} />
             <ActionButton icon={MessageCircle} label="42" />
-            <ActionButton icon={Gift} label="Gift" onClick={handleGift} colorClass="text-yellow-400" />
             <ActionButton icon={Share2} label="Share" />
             <div className="relative" ref={optionsRef}>
                  <ActionButton icon={MoreHorizontal} label="More" onClick={() => setShowOptionsMenu(!showOptionsMenu)} />
@@ -248,26 +178,6 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
                     </div>
                  )}
             </div>
-            
-            <div className="w-8 h-[1px] bg-white/20 my-1"></div>
-            
-            {/* AI Tools in Sidebar */}
-             <ActionButton 
-                icon={Sparkles} 
-                label="Edit" 
-                onClick={() => setShowEditModal(!showEditModal)} 
-                colorClass="text-neon" 
-                active={showEditModal}
-            />
-             {post.type === 'video' && (
-                <ActionButton 
-                    icon={Film} 
-                    label="Analyze" 
-                    onClick={() => setShowAnalyzeModal(!showAnalyzeModal)}
-                    colorClass="text-purple-400"
-                    active={showAnalyzeModal}
-                />
-            )}
         </div>
 
         {/* Bottom Info */}
@@ -275,12 +185,18 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
              <div className="pointer-events-auto">
                 <h3 className="font-bold text-white drop-shadow-md mb-1 text-lg">@{post.author}</h3>
                 <p className="text-sm text-white/90 drop-shadow-md mb-3 line-clamp-2 pr-4">{post.caption}</p>
-                <div className="flex items-center space-x-2 opacity-80 text-white">
-                    <Music2 className="w-3 h-3 animate-spin-slow" />
-                    <p className="text-xs">Original Audio - {post.author}</p>
-                </div>
              </div>
         </div>
+
+        {/* Progress Bar - Only for Video in Reels */}
+        {post.type === 'video' && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-30">
+                <div 
+                    className="h-full bg-white transition-all duration-100 ease-linear" 
+                    style={{ width: `${progress}%` }}
+                ></div>
+            </div>
+        )}
 
         {/* Report Modal */}
         {showReportModal && (
@@ -323,54 +239,6 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
                     )}
                 </div>
             </div>
-        )}
-
-        {/* Analysis/Edit Overlays for Reels */}
-        {(showAnalyzeModal || showEditModal) && (
-           <div className="absolute inset-x-4 bottom-40 p-4 bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 z-30 animate-in slide-in-from-bottom-10">
-               <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-sm font-bold text-black">
-                      {showAnalyzeModal ? 'Video Intelligence' : 'AI Magic Editor'}
-                  </h4>
-                  <button onClick={() => { setShowAnalyzeModal(false); setShowEditModal(false); }} className="text-gray-400 hover:text-black"><X className="w-4 h-4" /></button>
-               </div>
-               
-               {showAnalyzeModal && (
-                   <>
-                       {analysisResult ? (
-                           <p className="text-xs text-gray-700 max-h-32 overflow-y-auto">{analysisResult}</p>
-                       ) : (
-                           <div className="flex gap-2">
-                               <input 
-                                 type="text" 
-                                 value={analysisPrompt}
-                                 onChange={(e) => setAnalysisPrompt(e.target.value)}
-                                 placeholder="Ask about this video..."
-                                 className="flex-1 bg-gray-100 rounded px-2 py-2 text-xs focus:outline-none border border-transparent focus:border-purple-500 transition-all text-black"
-                               />
-                               <button onClick={handleAnalyze} disabled={isProcessing} className="bg-purple-600 text-white px-3 py-1 rounded text-xs font-bold">
-                                   {isProcessing ? '...' : 'Ask'}
-                               </button>
-                           </div>
-                       )}
-                   </>
-               )}
-
-               {showEditModal && (
-                   <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        value={editPrompt}
-                        onChange={(e) => setEditPrompt(e.target.value)}
-                        placeholder="Describe changes..."
-                        className="flex-1 bg-gray-100 rounded px-2 py-2 text-xs focus:outline-none border border-transparent focus:border-neon transition-all text-black"
-                      />
-                      <button onClick={handleEdit} disabled={isProcessing} className="bg-neon text-white px-3 py-1 rounded text-xs font-bold">
-                          {isProcessing ? '...' : 'Go'}
-                      </button>
-                   </div>
-               )}
-           </div>
         )}
       </div>
     );
@@ -456,36 +324,6 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
           {/* Media */}
           <div className="relative min-h-[300px] bg-gray-100 flex items-center justify-center group">
              {renderMedia(false)}
-             
-             {/* Overlays for Edit/Analyze in Feed */}
-             {showAnalyzeModal && (
-                 <div className="absolute inset-0 bg-white/90 z-10 p-6 flex flex-col justify-center animate-in fade-in backdrop-blur-sm">
-                      <h3 className="text-purple-600 font-bold mb-4 flex items-center gap-2"><Film className="w-4 h-4"/> Video Analysis</h3>
-                      {analysisResult ? (
-                          <div className="bg-gray-100 p-4 rounded-lg mb-4 text-sm text-gray-700 max-h-[60%] overflow-y-auto scrollbar-thin">
-                              {analysisResult}
-                          </div>
-                      ) : (
-                          <div className="space-y-3">
-                              <textarea 
-                                value={analysisPrompt}
-                                onChange={(e) => setAnalysisPrompt(e.target.value)}
-                                className="w-full bg-gray-50 rounded p-3 text-sm border border-gray-300 focus:border-purple-500 focus:outline-none text-black"
-                                placeholder="What's happening in this video?"
-                                rows={3}
-                              />
-                              <button 
-                                onClick={handleAnalyze} 
-                                disabled={isProcessing}
-                                className="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded font-bold text-sm transition-colors text-white"
-                              >
-                                  {isProcessing ? 'Analyzing...' : 'Analyze with Gemini'}
-                              </button>
-                          </div>
-                      )}
-                      <button onClick={() => setShowAnalyzeModal(false)} className="mt-auto text-gray-500 text-sm hover:text-black self-center">Close</button>
-                 </div>
-             )}
           </div>
 
           {/* Actions */}
@@ -498,25 +336,6 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
                       <MessageCircle className="w-6 h-6 text-black hover:text-gray-600 cursor-pointer" />
                       <Share2 className="w-6 h-6 text-black hover:text-gray-600 cursor-pointer" />
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    {post.type === 'video' && (
-                        <button 
-                            onClick={() => setShowAnalyzeModal(true)}
-                            className="flex items-center space-x-1 bg-purple-50 text-purple-600 px-2 py-1 rounded-md text-xs font-medium hover:bg-purple-100 transition border border-purple-100"
-                        >
-                            <Film className="w-3 h-3" />
-                            <span>Analyze</span>
-                        </button>
-                    )}
-                     <button 
-                        onClick={() => setShowEditModal(!showEditModal)}
-                        className="flex items-center space-x-1 bg-cyan-50 text-cyan-600 px-2 py-1 rounded-md text-xs font-medium hover:bg-cyan-100 transition border border-cyan-100"
-                     >
-                        <Sparkles className="w-3 h-3" />
-                        <span>Edit</span>
-                     </button>
-                  </div>
               </div>
 
               <div className="font-bold text-sm mb-1 text-black">{likes.toLocaleString()} likes</div>
@@ -525,32 +344,6 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
                   {post.caption}
               </div>
               <div className="text-xs text-gray-500 mt-1 uppercase">2 hours ago</div>
-              
-              {/* Inline Edit Box for Feed */}
-              {showEditModal && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 animate-in slide-in-from-top-2">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-xs font-bold text-black flex items-center gap-2"><Sparkles className="w-3 h-3 text-cyan-500"/> AI Editor</h4>
-                        <button onClick={() => setShowEditModal(false)}><X className="w-3 h-3 text-gray-500 hover:text-black" /></button>
-                      </div>
-                      <div className="flex gap-2">
-                          <input 
-                            type="text" 
-                            value={editPrompt}
-                            onChange={(e) => setEditPrompt(e.target.value)}
-                            placeholder="Add sunglasses, change background..."
-                            className="flex-1 bg-white rounded px-3 py-2 text-sm border border-gray-300 focus:border-cyan-500 focus:outline-none text-black"
-                          />
-                          <button 
-                            onClick={handleEdit}
-                            disabled={isProcessing}
-                            className="bg-black text-white px-4 py-2 rounded font-bold text-xs hover:bg-gray-800 transition-colors"
-                          >
-                              {isProcessing ? '...' : 'Go'}
-                          </button>
-                      </div>
-                  </div>
-              )}
           </div>
       </div>
   );

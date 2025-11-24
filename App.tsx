@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FeedProvider } from './context/FeedContext';
 import Feed from './components/Feed';
 import Navbar from './components/Navbar';
@@ -7,7 +7,7 @@ import CreateModal from './components/CreateModal';
 import Profile from './components/Profile';
 import Messages from './components/Messages';
 import Discover from './components/Discover';
-import { Heart, Search } from 'lucide-react';
+import { Heart, Search, MessageCircle } from 'lucide-react';
 
 export type ViewMode = 'feed' | 'reels';
 
@@ -17,6 +17,46 @@ const App: React.FC = () => {
   
   // Home specific state (For switching between Following/For You inside Home tab)
   const [homeViewMode, setHomeViewMode] = useState<ViewMode>('feed');
+
+  // Handle Global Keyboard Navigation (Left: Messages, Right: Camera)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        const target = e.target as HTMLElement;
+        // Prevent navigation when typing
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+        // 1. Camera / Create Mode (Right Overlay)
+        if (isCreateOpen) {
+            // Left Arrow -> Close Camera (Go back to Home)
+            if (e.key === 'ArrowLeft') {
+                setIsCreateOpen(false);
+            }
+            return;
+        }
+
+        // 2. Messages Tab (Left Screen)
+        if (activeTab === 'messages') {
+            // Right Arrow -> Go back to Home
+            if (e.key === 'ArrowRight') {
+                setActiveTab('home');
+            }
+            return;
+        }
+
+        // 3. Home Tab (Center Screen)
+        if (activeTab === 'home') {
+            if (e.key === 'ArrowLeft') {
+                // Navigate Left -> Open Messages
+                setActiveTab('messages');
+            } else if (e.key === 'ArrowRight') {
+                // Navigate Right -> Open Camera
+                setIsCreateOpen(true);
+            }
+        }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, isCreateOpen]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -88,14 +128,17 @@ const App: React.FC = () => {
                 </button>
               </div>
 
-              {/* Notifications Button */}
-              <button 
-                onClick={() => setActiveTab('notifications')}
-                className="pointer-events-auto p-2 rounded-full bg-gray-100 backdrop-blur-md text-black hover:bg-gray-200 transition shadow-lg relative border border-gray-200"
-              >
-                <Heart className="w-5 h-5" />
-                <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
-              </button>
+              {/* Right Side Actions */}
+              <div className="flex items-center gap-3 pointer-events-auto">
+                  {/* Messages Button */}
+                  <button 
+                    onClick={() => setActiveTab('messages')}
+                    className="p-2 rounded-full bg-gray-100 backdrop-blur-md text-black hover:bg-gray-200 transition shadow-lg relative border border-gray-200"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] text-white border-2 border-white">3</span>
+                  </button>
+              </div>
             </header>
           )}
 

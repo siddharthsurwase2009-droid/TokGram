@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Settings, Grid, PlayCircle, Bookmark, Lock, MapPin, Link as LinkIcon, TrendingUp, ChevronRight, DollarSign, X, Camera, Check } from 'lucide-react';
+import { Settings, Grid, PlayCircle, Bookmark, Lock, MapPin, Link as LinkIcon, TrendingUp, ChevronRight, DollarSign, X, Camera, Check, Loader2, CheckCircle2, Heart } from 'lucide-react';
 import { useFeed } from '../context/FeedContext';
 import SettingsModal from './SettingsModal';
 import { fileToBase64 } from '../utils/helpers';
@@ -19,8 +19,16 @@ const Profile: React.FC = () => {
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
   });
 
+  // Settings State (Lifted from Modal)
+  const [settings, setSettings] = useState({
+      isPrivate: false,
+      accountType: 'Professional' as 'Personal' | 'Professional'
+  });
+
   // Edit Mode State
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [editForm, setEditForm] = useState(profile);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,8 +40,20 @@ const Profile: React.FC = () => {
   };
 
   const handleSaveProfile = () => {
-      setProfile(editForm);
-      setIsEditing(false);
+      setIsSaving(true);
+      // Simulate API call
+      setTimeout(() => {
+          setProfile(editForm);
+          setIsSaving(false);
+          setIsEditing(false);
+          // Show success toast
+          setShowSuccessToast(true);
+          setTimeout(() => setShowSuccessToast(false), 3000);
+      }, 800);
+  };
+
+  const handleUpdateSettings = (key: string, value: any) => {
+      setSettings(prev => ({ ...prev, [key]: value }));
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,11 +69,24 @@ const Profile: React.FC = () => {
 
   return (
     <div className="w-full h-full bg-white overflow-y-auto pb-24 pt-12 relative">
+      {/* Toast Notification */}
+      {showSuccessToast && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] animate-in slide-in-from-top-5 fade-in duration-300">
+           <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-gray-700">
+              <CheckCircle2 className="w-5 h-5 text-green-400" />
+              <span className="font-bold text-sm">Profile Updated Successfully</span>
+           </div>
+        </div>
+      )}
+
       {/* Header Actions */}
       <div className="fixed top-0 left-0 right-0 p-4 flex justify-between items-center bg-white/90 backdrop-blur z-30 border-b border-gray-200 md:left-[240px]">
-         <h1 className="text-lg font-bold flex items-center gap-1 text-black">
-             {profile.username} <span className="w-2 h-2 bg-red-500 rounded-full" title="Notification"></span>
-         </h1>
+         <div className="flex items-center gap-3">
+             <h1 className="text-lg font-bold flex items-center gap-1 text-black">
+                 {settings.isPrivate && <Lock className="w-4 h-4 text-black mr-1" />}
+                 {profile.username} <span className="w-2 h-2 bg-red-500 rounded-full" title="Notification"></span>
+             </h1>
+         </div>
          <div className="flex gap-4">
              <button onClick={() => setShowSettings(true)} aria-label="Settings">
                  <Settings className="w-6 h-6 text-black hover:rotate-90 transition duration-300" />
@@ -96,6 +129,11 @@ const Profile: React.FC = () => {
           {/* Bio */}
           <div className="space-y-1 mb-4">
               <h2 className="font-bold text-sm text-black">{profile.displayName}</h2>
+              <div className="flex items-center gap-2 mb-1">
+                 <span className={`text-[10px] px-2 py-0.5 rounded-full border ${settings.accountType === 'Professional' ? 'bg-gray-100 border-gray-300 text-gray-600' : 'hidden'}`}>
+                    {settings.accountType}
+                 </span>
+              </div>
               <p className="text-sm text-gray-800 whitespace-pre-wrap">{profile.bio}</p>
               {profile.location && (
                   <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -109,25 +147,27 @@ const Profile: React.FC = () => {
               )}
           </div>
 
-          {/* Monetization / Dashboard Widget */}
-          <div 
-            className="bg-gray-100 rounded-lg p-3 mb-4 flex items-center justify-between cursor-pointer hover:bg-gray-200 transition border border-gray-200 group" 
-            onClick={() => setShowSettings(true)}
-          >
-             <div className="flex items-center gap-3">
-                 <div className="p-2 bg-white rounded-full shadow-sm">
-                     <DollarSign className="w-4 h-4 text-green-600" />
-                 </div>
-                 <div>
-                     <div className="text-sm font-bold text-black">Professional Dashboard</div>
-                     <div className="text-[10px] text-green-600 font-semibold flex items-center gap-1">
-                        <span>$1,240.50 earned</span>
-                        <span className="text-gray-500">• 1.4k reach</span>
-                     </div>
-                 </div>
-             </div>
-             <ChevronRight className="w-4 h-4 text-gray-500" />
-          </div>
+          {/* Monetization / Dashboard Widget (Only for Professional) */}
+          {settings.accountType === 'Professional' && (
+            <div 
+                className="bg-gray-100 rounded-lg p-3 mb-4 flex items-center justify-between cursor-pointer hover:bg-gray-200 transition border border-gray-200 group" 
+                onClick={() => setShowSettings(true)}
+            >
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white rounded-full shadow-sm">
+                        <DollarSign className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div>
+                        <div className="text-sm font-bold text-black">Professional Dashboard</div>
+                        <div className="text-[10px] text-green-600 font-semibold flex items-center gap-1">
+                            <span>$1,240.50 earned</span>
+                            <span className="text-gray-500">• 1.4k reach</span>
+                        </div>
+                    </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-500" />
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-2">
@@ -191,12 +231,16 @@ const Profile: React.FC = () => {
           <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col animate-in slide-in-from-bottom-10">
               {/* Modal Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white sticky top-0">
-                  <button onClick={() => setIsEditing(false)} className="text-black">
+                  <button onClick={() => setIsEditing(false)} className="text-black" disabled={isSaving}>
                       <X className="w-6 h-6" />
                   </button>
                   <h2 className="font-bold text-lg text-black">Edit Profile</h2>
-                  <button onClick={handleSaveProfile} className="text-blue-500">
-                      <Check className="w-6 h-6" />
+                  <button onClick={handleSaveProfile} className="text-blue-500" disabled={isSaving}>
+                      {isSaving ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <Check className="w-6 h-6" />
+                      )}
                   </button>
               </div>
 
@@ -290,7 +334,13 @@ const Profile: React.FC = () => {
       )}
 
       {/* Settings/Privacy Modal */}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+          <SettingsModal 
+            onClose={() => setShowSettings(false)} 
+            settings={settings}
+            onUpdateSettings={handleUpdateSettings}
+          />
+      )}
     </div>
   );
 };
