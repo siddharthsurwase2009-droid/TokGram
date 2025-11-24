@@ -590,9 +590,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, settings, onUpda
             {hasChanges && (
                 <button 
                     onClick={handleSave} 
-                    className="px-4 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition animate-in fade-in shadow-md"
+                    className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-full hover:bg-blue-700 transition animate-in fade-in shadow-md flex items-center gap-1"
                 >
-                    Save
+                    <Check className="w-3 h-3" /> Save
                 </button>
             )}
             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition">

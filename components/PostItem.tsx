@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Post } from '../types';
-import { Heart, MessageCircle, Share2, MoreHorizontal, X, Flag, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, X, Flag, EyeOff, AlertCircle, CheckCircle2, Check } from 'lucide-react';
 import { ViewMode } from '../App';
 
 interface PostItemProps {
@@ -13,6 +13,7 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
   const [likes, setLikes] = useState(post.likes);
   const [showHeartOverlay, setShowHeartOverlay] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   // Safety / Menu State
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -68,6 +69,11 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
     setIsLiked(!isLiked);
   };
 
+  const handleFollow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFollowing(!isFollowing);
+  };
+
   const handleDoubleTap = (e: React.MouseEvent) => {
     // If user double taps, we always like the post (if not already liked)
     // We also show the animation regardless
@@ -88,6 +94,8 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
          alert("Thanks for reporting. We will review this post shortly.");
      }, 2000);
   };
+
+  const isCurrentUser = ['you', 'you_creative_ai'].includes(post.author.toLowerCase());
 
   const renderMedia = (isReels: boolean) => {
     const commonClasses = isReels 
@@ -126,7 +134,7 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
         className={`p-3 rounded-full transition-all ${viewMode === 'reels' ? 'bg-gray-800/60 hover:bg-gray-700/60 backdrop-blur-sm' : 'hover:bg-gray-100'} ${active ? 'scale-110' : ''}`}
         aria-label={label}
       >
-        <Icon className={`w-7 h-7 transition-colors ${active ? `fill-current ${colorClass}` : (viewMode === 'reels' ? 'text-white' : 'text-black')}`} />
+        <Icon className={`w-7 h-7 transition-colors ${active ? `fill-current ${colorClass} animate-like-bounce` : (viewMode === 'reels' ? 'text-white' : 'text-black')}`} />
       </button>
       {label && <span className={`text-xs font-medium ${viewMode === 'reels' ? 'text-white shadow-black drop-shadow-md' : 'text-black'}`}>{label}</span>}
     </div>
@@ -157,9 +165,18 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
                         </div>
                     </div>
                 </div>
-                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-accent rounded-full p-0.5 cursor-pointer">
-                     <div className="w-3 h-3 flex items-center justify-center text-[8px] font-bold text-white">+</div>
-                </div>
+                {!isCurrentUser && (
+                    <div 
+                        onClick={handleFollow} 
+                        className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 p-0.5 rounded-full cursor-pointer transition-all duration-300 ${isFollowing ? 'bg-white border border-gray-200 scale-90' : 'bg-accent hover:scale-110'}`}
+                    >
+                         {isFollowing ? (
+                             <Check className="w-3 h-3 text-accent" />
+                         ) : (
+                             <div className="w-3 h-3 flex items-center justify-center text-[8px] font-bold text-white">+</div>
+                         )}
+                    </div>
+                )}
             </div>
 
             <ActionButton icon={Heart} label={likes} onClick={handleLike} active={isLiked} />
@@ -183,8 +200,22 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
         {/* Bottom Info */}
         <div className="absolute bottom-20 left-4 right-16 z-20 text-left pointer-events-none">
              <div className="pointer-events-auto">
-                <h3 className="font-bold text-white drop-shadow-md mb-1 text-lg">@{post.author}</h3>
-                <p className="text-sm text-white/90 drop-shadow-md mb-3 line-clamp-2 pr-4">{post.caption}</p>
+                <div className="flex items-center gap-3 mb-1">
+                    <h3 className="font-bold text-white drop-shadow-md text-lg shadow-black">@{post.author}</h3>
+                    {!isCurrentUser && (
+                        <button 
+                            onClick={handleFollow}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all backdrop-blur-sm ${
+                                isFollowing 
+                                ? 'bg-white/10 border-white/30 text-white/80' 
+                                : 'bg-transparent border-white text-white hover:bg-white/20'
+                            }`}
+                        >
+                            {isFollowing ? 'Following' : 'Follow'}
+                        </button>
+                    )}
+                </div>
+                <p className="text-sm text-white/90 drop-shadow-md mb-3 line-clamp-2 pr-4 shadow-black">{post.caption}</p>
              </div>
         </div>
 
@@ -258,6 +289,17 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
                       </div>
                   </div>
                   <span className="font-semibold text-sm text-black">{post.author}</span>
+                  {!isCurrentUser && (
+                      <>
+                        <span className="text-gray-300 text-xs">•</span>
+                        <button 
+                            onClick={handleFollow}
+                            className={`text-sm font-bold transition-colors ${isFollowing ? 'text-gray-500' : 'text-blue-500 hover:text-blue-700'}`}
+                        >
+                            {isFollowing ? 'Following' : 'Follow'}
+                        </button>
+                      </>
+                  )}
               </div>
               
               <div className="relative" ref={optionsRef}>
@@ -331,7 +373,7 @@ const PostItem: React.FC<PostItemProps> = ({ post, viewMode }) => {
               <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-4">
                       <button onClick={handleLike} className="hover:text-accent transition transform active:scale-90">
-                          <Heart className={`w-6 h-6 ${isLiked ? 'fill-accent text-accent' : 'text-black'}`} />
+                          <Heart className={`w-6 h-6 transition-colors ${isLiked ? 'fill-accent text-accent animate-like-bounce' : 'text-black'}`} />
                       </button>
                       <MessageCircle className="w-6 h-6 text-black hover:text-gray-600 cursor-pointer" />
                       <Share2 className="w-6 h-6 text-black hover:text-gray-600 cursor-pointer" />

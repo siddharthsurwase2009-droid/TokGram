@@ -17,6 +17,7 @@
             },
             animation: {
               'gradient-x': 'gradient-x 3s ease infinite',
+              'like-bounce': 'like-bounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
             },
             keyframes: {
               'gradient-x': {
@@ -28,6 +29,11 @@
                   'background-size': '200% 200%',
                   'background-position': 'right center',
                 },
+              },
+              'like-bounce': {
+                '0%': { transform: 'scale(1)' },
+                '50%': { transform: 'scale(1.4)' },
+                '100%': { transform: 'scale(1)' },
               },
             },
           },
